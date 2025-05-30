@@ -45,6 +45,9 @@ osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
 osThreadId led_blink_primitive_handle;
+osThreadId led_delay_until_handle;
+osThreadId led_green_blink_handle;
+osThreadId led_red_blink_handle;
 
 /* USER CODE END PV */
 
@@ -57,6 +60,9 @@ void StartDefaultTask(void const * argument);
 
 // declare out primitive blink task
 void led_blink_primitive_task(void const * pvParameters);
+void led_delay_until_task(void const* pvParameters);
+void led_green_blink_task(void const* pvParameters);
+void led_red_blink_task(void const* pvParameters);
 
 /* USER CODE END PFP */
 
@@ -122,8 +128,19 @@ int main(void)
   /* add threads, ... */
 
   // blink LED using RTOS primitive API -> vTask Delay
-  osThreadDef(primitive_task, led_blink_primitive_task, osPriorityNormal, 0, 128);
-  led_blink_primitive_handle = osThreadCreate(osThread(primitive_task), NULL);
+//  osThreadDef(primitive_task, led_blink_primitive_task, osPriorityNormal, 0, 128);
+//  led_blink_primitive_handle = osThreadCreate(osThread(primitive_task), NULL);
+//
+//  osThreadDef(delay_until, led_delay_until_task, osPriorityNormal, 0, 128);
+//  led_delay_until_handle = osThreadCreate(osThread(delay_until), NULL);
+
+  // EXERCISE 3 -> blink LEDs at different frequencies
+  osThreadDef(green_blink, led_green_blink_task, osPriorityNormal, 0, 128);
+  led_green_blink_handle = osThreadCreate(osThread(green_blink), NULL);
+
+  osThreadDef(red_blink, led_red_blink_task, osPriorityNormal, 0, 128);
+  led_red_blink_handle = osThreadCreate(osThread(red_blink), NULL);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -194,10 +211,21 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ONBOARD_LED_GPIO_Port, ONBOARD_LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|MY_LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : ONBOARD_LED_Pin */
+  GPIO_InitStruct.Pin = ONBOARD_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ONBOARD_LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA0 MY_LED_Pin */
   GPIO_InitStruct.Pin = GPIO_PIN_0|MY_LED_Pin;
@@ -216,6 +244,32 @@ void led_blink_primitive_task(void const* pvParameters) {
 		HAL_GPIO_WritePin(MY_LED_GPIO_Port, MY_LED_Pin, GPIO_PIN_SET);
 		vTaskDelay(500);
 		HAL_GPIO_WritePin(MY_LED_GPIO_Port, MY_LED_Pin, GPIO_PIN_RESET);
+		vTaskDelay(500);
+	}
+}
+
+void led_delay_until_task(void const* pvParameters) {
+	TickType_t timestamp;
+	TickType_t delay_ms = 2000;
+
+	while(1) {
+		HAL_GPIO_WritePin(MY_LED_GPIO_Port, MY_LED_Pin, GPIO_PIN_SET);
+		osDelayUntil(&timestamp, delay_ms);
+		HAL_GPIO_WritePin(MY_LED_GPIO_Port, MY_LED_Pin, GPIO_PIN_RESET);
+		osDelayUntil(&timestamp, delay_ms);
+	}
+}
+
+void led_green_blink_task(void const* pvParameters) {
+	while(1) {
+		HAL_GPIO_TogglePin(MY_LED_GPIO_Port, MY_LED_Pin);
+		vTaskDelay(2000);
+	}
+}
+
+void led_red_blink_task(void const* pvParameters) {
+	while(1) {
+		HAL_GPIO_TogglePin(ONBOARD_LED_GPIO_Port, ONBOARD_LED_Pin);
 		vTaskDelay(500);
 	}
 }

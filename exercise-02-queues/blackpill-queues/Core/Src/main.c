@@ -50,9 +50,12 @@ osThreadId defaultTaskHandle;
 
 osThreadId senderTaskHandle;
 osThreadId receiverTaskHandle;
+osThreadId receiveFromStructTaskHandle;
+osThreadId sendStructTaskHandle;
 
 // queue handlers
 xQueueHandle simpleQueue;
+xQueueHandle structQueueHandle;
 
 /* USER CODE END PV */
 
@@ -65,11 +68,20 @@ void StartDefaultTask(void const * argument);
 /* USER CODE BEGIN PFP */
 void sendingTask(void const* argument);
 void receivingTask(void const* argument);
+void receiveFromStructTask(void const* argument);
+void sendStructTask(void const * argument);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// structured queue
+  typedef struct {
+	  char* str;
+	  int counter;
+	  uint16_t large_value;
+  }my_struct;
+
 
 /* USER CODE END 0 */
 
@@ -125,10 +137,21 @@ int main(void)
   simpleQueue = xQueueCreate(5, sizeof(int));
 
   if(simpleQueue == 0) {
-	  char* str = "unable to create queue\n";
+	  char* str = "unable to create queue\r\n";
 	  HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
   } else {
-	  char* str = "Integer queue created successfully\n";
+	  char* str = "Integer queue created successfully\r\n";
+	  HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
+  }
+
+
+  structQueueHandle = xQueueCreate(2, sizeof(my_struct));
+
+  if(structQueueHandle == pdFALSE) {
+	  char* str = "unable to create structure queue\r\n";
+	  HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
+  }  else {
+	  char* str = "Structure queue created successfully\r\n";
 	  HAL_UART_Transmit(&huart1, (uint8_t*) str, strlen(str), HAL_MAX_DELAY);
   }
 
@@ -144,12 +167,20 @@ int main(void)
   /* add threads, ... */
 
   // sender thread
-  osThreadDef(senderTask, sendingTask, osPriorityNormal, 0, 128);
-  senderTaskHandle = osThreadCreate(osThread(senderTask), NULL);
+//  osThreadDef(senderTask, sendingTask, osPriorityNormal, 0, 128);
+//  senderTaskHandle = osThreadCreate(osThread(senderTask), NULL);
+//
+//  // receiver thread
+//  osThreadDef(receiverTask, receivingTask, osPriorityNormal, 0, 128);
+//  receiverTaskHandle = osThreadCreate(osThread(receiverTask), NULL);
 
-  // receiver thread
-  osThreadDef(receiverTask, receivingTask, osPriorityNormal, 0, 128);
-  receiverTaskHandle = osThreadCreate(osThread(receiverTask), NULL);
+  // sender to structured queue
+  osThreadDef(recvStructTask, receiveFromStructTask, osPriorityNormal, 0, 128);
+  receiveFromStructTaskHandle = osThreadCreate(osThread(recvStructTask), NULL);
+
+  osThreadDef(sendStrTask, sendStructTask, osPriorityNormal, 0, 128);
+  sendStructTaskHandle = osThreadCreate(osThread(sendStrTask), NULL);
+
 
   /* USER CODE END RTOS_THREADS */
 
@@ -292,6 +323,58 @@ void receivingTask(void const * argument){
 	}
 }
 
+void sendStructTask(void const * argument) {
+
+	my_struct* ptr_struct;
+	uint32_t tickDelay = pdMS_TO_TICKS(2000);
+	uint16_t indx = 1;
+
+	while(1) {
+		// allocate data
+		ptr_struct = pvPortMalloc(sizeof(my_struct));
+
+		// load the data
+		ptr_struct->counter = 1 + indx;
+		ptr_struct->large_value = 1000 + indx*199;
+		ptr_struct->str = "Hello from sender 1\r\n";
+
+		// send to queue
+		if(xQueueSend(structQueueHandle, &ptr_struct, portMAX_DELAY) == pdPASS) {
+			char* str = "Sent struct success";
+		}
+
+		indx = indx + 1;
+
+		vTaskDelay(tickDelay);
+	}
+
+}
+
+void receiveFromStructTask(void const * argument) {
+	my_struct* ptrRcvStruct;
+	uint32_t tickDelay = pdMS_TO_TICKS(3000);
+	char *ptr;
+
+	while(1) {
+		char *str2 = "receiving from struct queue\r\n";
+		HAL_UART_Transmit(&huart1, (uint8_t*)str2, strlen(str2), HAL_MAX_DELAY);
+
+		if(xQueueReceive(structQueueHandle, &ptrRcvStruct, portMAX_DELAY) == pdPASS) {
+			ptr = pvPortMalloc(100 * sizeof(char)); // memory for the string
+			sprintf(ptr, "Recvd\r\n: counter = %d\r\n large value = %u\r\n string = %s\r\n\n",
+					ptrRcvStruct->counter,
+					ptrRcvStruct->large_value,
+					ptrRcvStruct->str);
+
+			HAL_UART_Transmit(&huart1, (uint8_t *)ptr, strlen(ptr), HAL_MAX_DELAY);
+
+			vPortFree(ptr); // free the string memory
+		}
+
+		vPortFree(ptrRcvStruct);; // free the structure memory
+		vTaskDelay(tickDelay);
+	}
+}
 
 
 /* USER CODE END 4 */

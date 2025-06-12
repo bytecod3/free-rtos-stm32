@@ -1,0 +1,13 @@
+../Core/Src/main.c:110:5:main	128	static
+../Core/Src/main.c:240:6:SystemClock_Config	72	static
+../Core/Src/main.c:277:13:MX_USART1_UART_Init	8	static
+../Core/Src/main.c:310:13:MX_GPIO_Init	24	static
+../Core/Src/main.c:328:6:sendingTask	32	static
+../Core/Src/main.c:343:6:receivingTask	48	static
+../Core/Src/main.c:358:6:sendStructTask	32	static
+../Core/Src/main.c:385:6:receiveFromStructTask	40	static
+../Core/Src/main.c:415:6:receiveFromMultipleTask	64	static
+../Core/Src/main.c:432:6:CANBusTask	40	static
+../Core/Src/main.c:451:6:ControllerTask	88	static
+../Core/Src/main.c:484:6:StartDefaultTask	16	static
+../Core/Src/main.c:499:6:Error_Handler	4	static,ignoring_inline_asm

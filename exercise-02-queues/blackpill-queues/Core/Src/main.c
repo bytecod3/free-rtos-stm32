@@ -53,6 +53,8 @@ osThreadId receiverTaskHandle;
 osThreadId receiveFromStructTaskHandle;
 osThreadId sendStructTaskHandle;
 
+osThreadId receiveFromMultipleTaskHandle;
+
 // queue handlers
 xQueueHandle simpleQueue;
 xQueueHandle structQueueHandle;
@@ -70,6 +72,7 @@ void sendingTask(void const* argument);
 void receivingTask(void const* argument);
 void receiveFromStructTask(void const* argument);
 void sendStructTask(void const * argument);
+void receiveFromMultipleTask(void const* argument);
 
 /* USER CODE END PFP */
 
@@ -167,19 +170,22 @@ int main(void)
   /* add threads, ... */
 
   // sender thread
-//  osThreadDef(senderTask, sendingTask, osPriorityNormal, 0, 128);
-//  senderTaskHandle = osThreadCreate(osThread(senderTask), NULL);
-//
-//  // receiver thread
-//  osThreadDef(receiverTask, receivingTask, osPriorityNormal, 0, 128);
-//  receiverTaskHandle = osThreadCreate(osThread(receiverTask), NULL);
+  osThreadDef(senderTask, sendingTask, osPriorityNormal, 0, 128);
+  senderTaskHandle = osThreadCreate(osThread(senderTask), NULL);
+
+  // receiver thread
+  osThreadDef(receiverTask, receivingTask, osPriorityNormal, 0, 128);
+  receiverTaskHandle = osThreadCreate(osThread(receiverTask), NULL);
 
   // sender to structured queue
-  osThreadDef(recvStructTask, receiveFromStructTask, osPriorityNormal, 0, 128);
-  receiveFromStructTaskHandle = osThreadCreate(osThread(recvStructTask), NULL);
+//  osThreadDef(recvStructTask, receiveFromStructTask, osPriorityNormal, 0, 128);
+//  receiveFromStructTaskHandle = osThreadCreate(osThread(recvStructTask), NULL);
+//
+//  osThreadDef(sendStrTask, sendStructTask, osPriorityNormal, 0, 128);
+//  sendStructTaskHandle = osThreadCreate(osThread(sendStrTask), NULL);
 
-  osThreadDef(sendStrTask, sendStructTask, osPriorityNormal, 0, 128);
-  sendStructTaskHandle = osThreadCreate(osThread(sendStrTask), NULL);
+  osThreadDef(receivefromMultipleTsk, receiveFromMultipleTask, osPriorityNormal, 0, 128);
+  receiveFromMultipleTaskHandle = osThreadCreate(osThread(receivefromMultipleTsk), NULL);
 
 
   /* USER CODE END RTOS_THREADS */
@@ -295,13 +301,13 @@ static void MX_GPIO_Init(void)
 // sending task
 void sendingTask(void const * argument){
 
-	int y = 122;
+	int y = 130;
 	uint32_t tickDelay = pdMS_TO_TICKS(2000);
 
 	while(1) {
 		if(xQueueSend(simpleQueue, &y, portMAX_DELAY) == pdPASS){
 			char *str2 = " Successfully sent the number to the queue\nLeaving SENDER_HPT Task\n\n\n";
-			HAL_UART_Transmit(&huart1, (uint8_t*)str2, strlen(str2), HAL_MAX_DELAY);
+			//HAL_UART_Transmit(&huart1, (uint8_t*)str2, strlen(str2), HAL_MAX_DELAY);
 		}
 		vTaskDelay(tickDelay);
 	}
@@ -373,6 +379,27 @@ void receiveFromStructTask(void const * argument) {
 
 		vPortFree(ptrRcvStruct);; // free the structure memory
 		vTaskDelay(tickDelay);
+	}
+}
+
+/**
+ * Task to receive from multiple senders
+ *
+ */
+void receiveFromMultipleTask(void const* argument) {
+
+	int32_t lReceivedValue;
+	BaseType_t xStatus;
+	const TickType_t xTicksToWait = pdMS_TO_TICKS(100);
+
+	while (1) {
+		xStatus = xQueueReceive(simpleQueue, &lReceivedValue, xTicksToWait);
+		if(xStatus == pdPASS) {
+			char d[30];
+			sprintf(d, "Received: %d\r\n", lReceivedValue);
+			HAL_UART_Transmit(&huart1, (uint8_t*)d, strlen(d) , xTicksToWait);
+		}
+
 	}
 }
 

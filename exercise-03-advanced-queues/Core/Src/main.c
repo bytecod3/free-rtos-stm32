@@ -96,9 +96,14 @@ typedef struct {
   uint16_t large_value;
 }my_struct;
 
+typedef enum  {
+	CANBUS = 1,
+	HMI    = 2
+} DataSource;
+
 typedef struct  {
-  char* src;
-  int data;
+	DataSource src;
+	int data;
 } Data_t;
 
 /* USER CODE END 0 */
@@ -215,7 +220,10 @@ int main(void)
   osThreadDef(CANtsk, CANBusTask, osPriorityNormal, 0, 128);
   CANBusTaskHandle = osThreadCreate(osThread(CANtsk), NULL);
 
-  osThreadDef(controllerTsk, ControllerTask, osPriorityNormal, 0, 128);
+  osThreadDef(HMITsk, HMITask, osPriorityNormal, 0, 128);
+  HMITaskHandle = osThreadCreate(osThread(HMITsk), NULL);
+
+  osThreadDef(controllerTsk, ControllerTask, osPriorityLow, 0, 128);
   ControllerTaskHandle = osThreadCreate(osThread(controllerTsk), NULL);
 
   /* Start scheduler */
@@ -431,8 +439,8 @@ void receiveFromMultipleTask(void const* argument) {
 
 void CANBusTask(void const * argument) {
 	Data_t canPacket;
-	canPacket.src = "CANBUS";
-	canPacket.data = 120;
+	canPacket.src = CANBUS;
+	canPacket.data = 50;
 
 	TickType_t xTicksToWait = pdMS_TO_TICKS(100);
 
@@ -443,6 +451,19 @@ void CANBusTask(void const * argument) {
 		} else {
 			char* str = "Sent from CANBUS failed";
 			//HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), HAL_MAX_DELAY);
+		}
+
+	}
+}
+
+void HMITask(void const * argument) {
+	Data_t HMIPacket;
+	HMIPacket.src = HMI;
+	HMIPacket.data = 5;
+
+	while (1) {
+		if(xQueueSend(dataSourceQueueHandle, &HMIPacket, 50) == pdPASS) {
+			char* str = "Sent from HMI success";
 		}
 
 	}
@@ -466,7 +487,7 @@ void ControllerTask(void const * argument) {
 			// HMI
 
 			HAL_UART_Transmit(&huart1, (uint8_t*)recv_buffer, strlen(recv_buffer), HAL_MAX_DELAY);
-			vTaskDelay(pdMS_TO_TICKS(50));
+			//vTaskDelay(pdMS_TO_TICKS(50));
 		}
 
 	}

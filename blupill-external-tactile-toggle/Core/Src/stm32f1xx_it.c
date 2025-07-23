@@ -208,7 +208,7 @@ void EXTI4_IRQHandler(void)
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(USER_BUTTON_4_Pin);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
-
+  //HAL_GPIO_TogglePin(USER_LED1_GPIO_Port, USER_LED1_Pin);
   /* USER CODE END EXTI4_IRQn 1 */
 }
 
@@ -222,11 +222,25 @@ void EXTI9_5_IRQHandler(void)
   /* USER CODE END EXTI9_5_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(USER_BUTTON_Pin);
   /* USER CODE BEGIN EXTI9_5_IRQn 1 */
-  HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+  /* METHOD 1 OF CALLING INTERRUPTS */
+  //HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
 
   /* USER CODE END EXTI9_5_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */
+
+/* METHOD 2 of calling interrupts  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if(GPIO_Pin == GPIO_PIN_5) {
+		HAL_GPIO_TogglePin(USER_LED_GPIO_Port, USER_LED_Pin);
+	}
+
+	else if(GPIO_Pin == GPIO_PIN_4) {
+		HAL_GPIO_TogglePin(USER_LED1_GPIO_Port, USER_LED1_Pin);
+	}
+
+}
+
 
 /* USER CODE END 1 */
